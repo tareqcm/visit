@@ -1,0 +1,6 @@
+{
+  "name": "ভ্রমণ বিবরণী",
+  "description": "পল্লী সঞ্চয় ব্যাংকের ফিল্ড অফিসারদের ২ পৃষ্ঠার স্বয়ংক্রিয় ভ্রমণ বিবরণী ও স্থিরচিত্রের পিডিএফ প্রস্তুতকারক অ্যাপ।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
