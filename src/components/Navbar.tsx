@@ -10,9 +10,13 @@ import {
   Settings,
   BookmarkCheck,
   FolderArchive,
-  Award,
+  UserCheck,
+  Cloud,
+  CloudCheck,
+  RefreshCw,
 } from 'lucide-react';
 import { toBengaliNumber } from '../utils/bengaliNumerals';
+import { useOfficerAuth } from '../firebase/AuthContext';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -20,9 +24,11 @@ interface NavbarProps {
   onDownloadPDF: () => void;
   onPrint: () => void;
   onSaveReport: () => void;
+  onOpenAuthModal: () => void;
   isDownloading: boolean;
   downloadProgressText?: string;
   savedReportsCount: number;
+  currentOfficerName: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -31,10 +37,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   onDownloadPDF,
   onPrint,
   onSaveReport,
+  onOpenAuthModal,
   isDownloading,
   downloadProgressText,
   savedReportsCount,
+  currentOfficerName,
 }) => {
+  const { currentUser, syncStatus } = useOfficerAuth();
+
   const tabs = [
     { id: 'preview', label: 'রিপোর্ট প্রিভিউ', icon: FileText },
     { id: 'calendar', label: 'ক্যালেন্ডার', icon: Calendar },
@@ -48,16 +58,46 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-amber-200/80 shadow-xs no-print">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-15 gap-2 sm:gap-3">
-          {/* Clean, Elegant Light-Gold Logo & Title (Zero Overlap / No messy clutter) */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-linear-to-br from-amber-500 via-amber-600 to-yellow-600 text-white flex items-center justify-center shadow-xs shrink-0 border border-amber-300">
+          {/* Logo & Officer Switcher button */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-600 text-white flex items-center justify-center shadow-xs shrink-0 border border-amber-300">
               <span className="font-extrabold text-sm sm:text-base tracking-tight font-serif">পসব</span>
             </div>
-            <div className="min-w-0">
-              <h1 className="font-bold text-base sm:text-lg text-amber-950 leading-none truncate">
-                ভ্রমণ বিবরণী
-              </h1>
-            </div>
+
+            {/* Officer Quick Account Pill Button */}
+            <button
+              onClick={onOpenAuthModal}
+              title="অফিসার পরিবর্তন বা ক্লাউড সিঙ্ক স্থিতি দেখতে ক্লিক করুন"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100/80 border border-amber-200/90 text-left transition group max-w-[170px] sm:max-w-[240px]"
+            >
+              <div className="w-6 h-6 rounded-lg bg-amber-200/80 text-amber-900 flex items-center justify-center shrink-0">
+                <UserCheck className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-bold text-stone-900 truncate">
+                    {currentUser?.displayName || currentOfficerName || 'অফিসার নির্বাচন'}
+                  </span>
+                  {currentUser ? (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title="ফায়ারবেজ ক্লাউড সক্রিয়"></span>
+                  ) : (
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" title="স্থানীয় ডেটা মোড"></span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 text-[10px] text-amber-800">
+                  {syncStatus === 'syncing' ? (
+                    <span className="flex items-center gap-0.5 text-amber-700">
+                      <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                      সিঙ্ক হচ্ছে...
+                    </span>
+                  ) : currentUser ? (
+                    <span className="truncate">২৫ জনের সুরক্ষিত ক্লাউড</span>
+                  ) : (
+                    <span className="text-stone-500 truncate">ক্লিক করে লগইন করুন</span>
+                  )}
+                </div>
+              </div>
+            </button>
           </div>
 
           {/* Desktop Navigation Tabs */}
@@ -111,7 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onDownloadPDF}
               disabled={isDownloading}
-              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-linear-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs sm:text-sm font-bold shadow-md transition active:scale-95 disabled:opacity-75 cursor-pointer border border-amber-500"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs sm:text-sm font-bold shadow-md transition active:scale-95 disabled:opacity-75 cursor-pointer border border-amber-500"
             >
               {isDownloading ? (
                 <>

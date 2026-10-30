@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "OfficerProfile": {
+      "title": "Officer Profile",
+      "description": "Officer personal settings, designation, branch, and signature",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Officer Firebase Auth UID" },
+        "officerName": { "type": "string", "description": "Officer's full name in Bengali" },
+        "designation": { "type": "string", "description": "Designation (e.g. মাঠ সহকারী)" },
+        "bankName": { "type": "string", "description": "Bank name" },
+        "branchName": { "type": "string", "description": "Branch name" },
+        "smarokNo": { "type": "string", "description": "Official memo/smarok number" },
+        "smarokDate": { "type": "string", "description": "Smarok date string" },
+        "signatureUrl": { "type": "string", "description": "Base64 or SVG signature string" },
+        "assignedUnion": { "type": "string", "description": "Default assigned union for officer" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["userId", "officerName", "designation", "bankName", "branchName"]
+    },
+    "OfficerSamity": {
+      "title": "Officer Samity",
+      "description": "Samity associated with the officer's field visits",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique Samity ID" },
+        "name": { "type": "string", "description": "Samity title/name in Bengali" },
+        "unionName": { "type": "string", "description": "Union name in Rangunia" },
+        "branchName": { "type": "string", "description": "Branch name" },
+        "active": { "type": "boolean", "description": "Whether samity is included in rotation" },
+        "userId": { "type": "string", "description": "Owner officer UID" }
+      },
+      "required": ["id", "name", "unionName", "active", "userId"]
+    },
+    "MonthlySchedule": {
+      "title": "Monthly Schedule",
+      "description": "Working days and samity assignments for a specific month",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Month key YYYY-MM" },
+        "year": { "type": "number", "description": "Calendar year" },
+        "month": { "type": "number", "description": "Month index 0-11" },
+        "days": { "type": "string", "description": "JSON serialized array of working days" },
+        "userId": { "type": "string", "description": "Owner officer UID" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["id", "year", "month", "days", "userId"]
+    },
+    "OfficerPhoto": {
+      "title": "Field Photo",
+      "description": "Month-specific field inspection photo",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Photo unique ID" },
+        "monthKey": { "type": "string", "description": "YYYY-MM format tag" },
+        "url": { "type": "string", "description": "Data URL or image URL" },
+        "caption": { "type": "string", "description": "Photo caption in Bengali" },
+        "timestamp": { "type": "string", "description": "ISO timestamp of photo" },
+        "order": { "type": "number", "description": "Display order" },
+        "userId": { "type": "string", "description": "Owner officer UID" }
+      },
+      "required": ["id", "monthKey", "url", "caption", "order", "userId"]
+    },
+    "SavedReport": {
+      "title": "Saved Monthly Report",
+      "description": "Archived monthly report snapshot",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Report ID in YYYY-MM format" },
+        "year": { "type": "number", "description": "Year of report" },
+        "month": { "type": "number", "description": "Month of report (0-11)" },
+        "monthYearLabel": { "type": "string", "description": "Bengali month/year label" },
+        "savedAt": { "type": "string", "description": "ISO timestamp" },
+        "savedAtFormatted": { "type": "string", "description": "Bengali formatted timestamp" },
+        "reportData": { "type": "string", "description": "JSON serialized full report snapshot" },
+        "totalVisits": { "type": "number", "description": "Total visits count" },
+        "totalPhotos": { "type": "number", "description": "Total photos count" },
+        "userId": { "type": "string", "description": "Owner officer UID" }
+      },
+      "required": ["id", "year", "month", "monthYearLabel", "savedAt", "reportData", "userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/profile/info": {
+      "schema": "OfficerProfile",
+      "description": "Individual officer settings and profile isolated to their UID"
+    },
+    "/users/{userId}/samities/{samityId}": {
+      "schema": "OfficerSamity",
+      "description": "Officer's customized samities list strictly private to the officer"
+    },
+    "/users/{userId}/months/{monthKey}": {
+      "schema": "MonthlySchedule",
+      "description": "Officer's monthly schedule data strictly private to the officer"
+    },
+    "/users/{userId}/photos/{photoId}": {
+      "schema": "OfficerPhoto",
+      "description": "Officer's monthly field photos strictly private to the officer"
+    },
+    "/users/{userId}/reports/{reportId}": {
+      "schema": "SavedReport",
+      "description": "Officer's archived PDF reports strictly private to the officer"
+    }
+  }
+}

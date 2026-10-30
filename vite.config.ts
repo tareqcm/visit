@@ -1,8 +1,8 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
-import {VitePWA} from 'vite-plugin-pwa';
+import { defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
@@ -12,13 +12,16 @@ export default defineConfig(() => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
+        workbox: {
+          maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        },
         manifest: {
           id: '/',
           name: 'ভ্রমণ বিবরণী',
           short_name: 'ভ্রমণবিবরণী',
           description: 'পল্লী সঞ্চয় ব্যাংকের ফিল্ড অফিসারদের ২ পৃষ্ঠার স্বয়ংক্রিয় ভ্রমণ বিবরণী ও স্থিরচিত্রের পিডিএফ প্রস্তুতকারক অ্যাপ।',
-          theme_color: '#047857',
-          background_color: '#f8fafc',
+          theme_color: '#d97706',
+          background_color: '#faf8f2',
           display: 'standalone',
           start_url: '/',
           scope: '/',
@@ -51,7 +54,7 @@ export default defineConfig(() => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname || '.', '.'),
       },
     },
     server: {

@@ -23,6 +23,20 @@ import {
   saveMonthlyReport,
   deleteSavedReport,
 } from './utils/storage';
+import {
+  saveCloudOfficerProfile,
+  loadCloudOfficerProfile,
+  saveCloudSamities,
+  loadCloudSamities,
+  saveCloudSchedule,
+  loadCloudSchedule,
+  saveCloudPhotos,
+  loadCloudPhotos,
+  saveCloudReport,
+  loadCloudReports,
+  deleteCloudReport,
+} from './firebase/firestoreService';
+import { useOfficerAuth } from './firebase/AuthContext';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { ReportPreview } from './components/ReportPreview';
@@ -33,6 +47,7 @@ import { OfficerSettings } from './components/OfficerSettings';
 import { SignatureModal } from './components/SignatureModal';
 import { SavedReportsView } from './components/SavedReportsView';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
+import { OfficerAuthModal } from './components/OfficerAuthModal';
 import {
   FileText,
   BookmarkCheck,
@@ -42,22 +57,20 @@ import {
   AlertCircle,
   CheckCircle2,
   Download,
-  FolderArchive,
+  Users,
 } from 'lucide-react';
 
-const STORAGE_KEYS = {
-  OFFICER_INFO: 'vromon_officer_info_v1',
-  SAMITIES: 'vromon_samities_v1',
-  SIGNATURE: 'vromon_signature_v1',
-};
-
 export default function App() {
+  const { currentUser, syncStatus, setSyncStatus } = useOfficerAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('preview');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Officer Info (persisted in localStorage)
+  const userId = currentUser?.uid;
+
+  // Officer Info
   const [officerInfo, setOfficerInfo] = useState<OfficerInfo>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.OFFICER_INFO);
+      const saved = localStorage.getItem('vromon_officer_info_guest');
       return saved ? JSON.parse(saved) : DEFAULT_OFFICER_INFO;
     } catch {
       return DEFAULT_OFFICER_INFO;
@@ -67,7 +80,7 @@ export default function App() {
   // Samities list
   const [samities, setSamities] = useState<Samity[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SAMITIES);
+      const saved = localStorage.getItem('vromon_samities_guest');
       return saved ? JSON.parse(saved) : DEFAULT_SAMITIES;
     } catch {
       return DEFAULT_SAMITIES;
@@ -77,14 +90,14 @@ export default function App() {
   // Signature URL
   const [signatureUrl, setSignatureUrl] = useState<string>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SIGNATURE);
+      const saved = localStorage.getItem('vromon_signature_guest');
       return saved || DEFAULT_SIGNATURE_SVG;
     } catch {
       return DEFAULT_SIGNATURE_SVG;
     }
   });
 
-  // Month-specific Photos (tied to officerInfo.year and officerInfo.month)
+  // Month-specific Photos
   const [photos, setPhotos] = useState<FieldPhoto[]>(DEFAULT_PHOTOS);
 
   // Month-specific Working Days
@@ -105,56 +118,132 @@ export default function App() {
 
   const currentReportId = `${officerInfo.year}-${String(officerInfo.month + 1).padStart(2, '0')}`;
 
-  // Initial load of month-specific data and archive
+  // When active officer changes (login / switch), load their strictly isolated data from Firestore & Cache
   useEffect(() => {
-    let mounted = true;
+    let isCancelled = false;
 
-    // Load saved reports archive
-    getSavedReports().then((reports) => {
-      if (mounted) setSavedReports(reports);
-    });
-
-    // Load photos for initial month
-    loadPhotosForMonth(officerInfo.year, officerInfo.month).then((loadedPhotos) => {
-      if (mounted) setPhotos(loadedPhotos);
-    });
-
-    // Load days for initial month
-    loadDaysForMonth(officerInfo.year, officerInfo.month).then((loadedDays) => {
-      if (mounted && loadedDays && loadedDays.length > 0) {
-        setDays(loadedDays);
+    async function syncOfficerData() {
+      if (!userId) {
+        // Fallback to guest storage
+        const localInfo = localStorage.getItem('vromon_officer_info_guest');
+        if (localInfo) setOfficerInfo(JSON.parse(localInfo));
+        const localArchive = await getSavedReports();
+        if (!isCancelled) setSavedReports(localArchive);
+        const localPhotos = await loadPhotosForMonth(officerInfo.year, officerInfo.month);
+        if (!isCancelled) setPhotos(localPhotos);
+        const localDays = await loadDaysForMonth(officerInfo.year, officerInfo.month);
+        if (!isCancelled && localDays) setDays(localDays);
+        return;
       }
-    });
+
+      setSyncStatus('syncing');
+
+      try {
+        // 1. Officer Profile & Settings
+        const cloudProfile = await loadCloudOfficerProfile(userId);
+        if (cloudProfile && cloudProfile.officerInfo) {
+          if (!isCancelled) {
+            setOfficerInfo((prev) => ({
+              ...prev,
+              ...cloudProfile.officerInfo,
+            }));
+            if (cloudProfile.signatureUrl) {
+              setSignatureUrl(cloudProfile.signatureUrl);
+            }
+          }
+        } else {
+          // First time this officer logged in, initialize cloud profile
+          const initialName = currentUser?.displayName || DEFAULT_OFFICER_INFO.officerName;
+          const initialInfo: OfficerInfo = {
+            ...officerInfo,
+            officerName: initialName,
+          };
+          setOfficerInfo(initialInfo);
+          await saveCloudOfficerProfile(userId, initialInfo, signatureUrl);
+        }
+
+        // 2. Officer Samities
+        const cloudSamities = await loadCloudSamities(userId);
+        if (cloudSamities && cloudSamities.length > 0) {
+          if (!isCancelled) setSamities(cloudSamities);
+        } else {
+          // Initialize user's default samities
+          await saveCloudSamities(userId, DEFAULT_SAMITIES);
+          if (!isCancelled) setSamities(DEFAULT_SAMITIES);
+        }
+
+        // 3. Officer Monthly Days
+        const cloudDays = await loadCloudSchedule(userId, officerInfo.year, officerInfo.month);
+        if (cloudDays && cloudDays.length > 0) {
+          if (!isCancelled) setDays(cloudDays);
+        } else {
+          const freshDays = generateMonthDays(officerInfo.year, officerInfo.month);
+          const distributed = distributeSamitiesToWorkingDays(freshDays, samities, officerInfo.branchName);
+          if (!isCancelled) setDays(distributed);
+          await saveCloudSchedule(userId, officerInfo.year, officerInfo.month, distributed);
+        }
+
+        // 4. Officer Monthly Photos
+        const cloudPhotos = await loadCloudPhotos(userId, officerInfo.year, officerInfo.month);
+        if (cloudPhotos && cloudPhotos.length > 0) {
+          if (!isCancelled) setPhotos(cloudPhotos);
+        } else {
+          const cachedPhotos = await loadPhotosForMonth(officerInfo.year, officerInfo.month, userId);
+          if (!isCancelled) setPhotos(cachedPhotos);
+        }
+
+        // 5. Officer Archived Reports
+        const cloudReports = await loadCloudReports(userId);
+        if (!isCancelled) {
+          setSavedReports(cloudReports);
+        }
+
+        setSyncStatus('synced');
+      } catch (err) {
+        console.error('Error synchronizing officer data:', err);
+        setSyncStatus('error');
+      }
+    }
+
+    syncOfficerData();
 
     return () => {
-      mounted = false;
+      isCancelled = true;
     };
-  }, []);
+  }, [userId, currentUser]);
 
-  // Save officerInfo, samities, signature changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.OFFICER_INFO, JSON.stringify(officerInfo));
-    } catch (e) {
-      console.warn('Failed to save officerInfo', e);
+  // Save officerInfo to cloud and local cache
+  const updateOfficerInfo = (newInfo: OfficerInfo) => {
+    setOfficerInfo(newInfo);
+    if (userId) {
+      saveCloudOfficerProfile(userId, newInfo, signatureUrl);
+      localStorage.setItem(`vromon_officer_info_${userId}`, JSON.stringify(newInfo));
+    } else {
+      localStorage.setItem('vromon_officer_info_guest', JSON.stringify(newInfo));
     }
-  }, [officerInfo]);
+  };
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SAMITIES, JSON.stringify(samities));
-    } catch (e) {
-      console.warn('Failed to save samities', e);
+  // Save samities to cloud and local cache
+  const updateSamities = (newSamities: Samity[]) => {
+    setSamities(newSamities);
+    if (userId) {
+      saveCloudSamities(userId, newSamities);
+      localStorage.setItem(`vromon_samities_${userId}`, JSON.stringify(newSamities));
+    } else {
+      localStorage.setItem('vromon_samities_guest', JSON.stringify(newSamities));
     }
-  }, [samities]);
+  };
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SIGNATURE, signatureUrl);
-    } catch (e) {
-      console.warn('Failed to save signature', e);
+  // Save signature
+  const updateSignature = (newSig: string) => {
+    setSignatureUrl(newSig);
+    if (userId) {
+      saveCloudOfficerProfile(userId, officerInfo, newSig);
+      localStorage.setItem(`vromon_signature_${userId}`, newSig);
+    } else {
+      localStorage.setItem('vromon_signature_guest', newSig);
     }
-  }, [signatureUrl]);
+  };
 
   // Working days only (open banking days) for Page 1 table
   const workingDaysOnly = useMemo(() => {
@@ -166,40 +255,71 @@ export default function App() {
     return savedReports.some((r) => r.id === currentReportId);
   }, [savedReports, currentReportId]);
 
-  // When photos change, auto-save to current month's store
+  // When photos change, auto-save to current month's store and cloud
   const handleUpdatePhotos = (newPhotos: FieldPhoto[]) => {
     setPhotos(newPhotos);
-    savePhotosForMonth(officerInfo.year, officerInfo.month, newPhotos);
+    savePhotosForMonth(officerInfo.year, officerInfo.month, newPhotos, userId);
+    if (userId) {
+      saveCloudPhotos(userId, officerInfo.year, officerInfo.month, newPhotos);
+    }
   };
 
-  // When days change, auto-save to current month's store
+  // When days change, auto-save to current month's store and cloud
   const handleUpdateDays = (newDays: WorkingDay[]) => {
     setDays(newDays);
-    saveDaysForMonth(officerInfo.year, officerInfo.month, newDays);
+    saveDaysForMonth(officerInfo.year, officerInfo.month, newDays, userId);
+    if (userId) {
+      saveCloudSchedule(userId, officerInfo.year, officerInfo.month, newDays);
+    }
   };
 
   // Handle Month / Year switch with month-wise photo & days switching
   const switchMonthAndYear = async (newYear: number, newMonth: number) => {
     // 1. Save current month's data before leaving
-    await savePhotosForMonth(officerInfo.year, officerInfo.month, photos);
-    await saveDaysForMonth(officerInfo.year, officerInfo.month, days);
+    await savePhotosForMonth(officerInfo.year, officerInfo.month, photos, userId);
+    await saveDaysForMonth(officerInfo.year, officerInfo.month, days, userId);
+    if (userId) {
+      await saveCloudPhotos(userId, officerInfo.year, officerInfo.month, photos);
+      await saveCloudSchedule(userId, officerInfo.year, officerInfo.month, days);
+    }
 
     // 2. Update officerInfo state
-    setOfficerInfo((prev) => ({ ...prev, year: newYear, month: newMonth }));
+    const updatedInfo = { ...officerInfo, year: newYear, month: newMonth };
+    updateOfficerInfo(updatedInfo);
 
     // 3. Load target month's photos
-    const monthPhotos = await loadPhotosForMonth(newYear, newMonth);
-    setPhotos(monthPhotos);
+    if (userId) {
+      const cloudP = await loadCloudPhotos(userId, newYear, newMonth);
+      if (cloudP && cloudP.length > 0) {
+        setPhotos(cloudP);
+      } else {
+        const monthPhotos = await loadPhotosForMonth(newYear, newMonth, userId);
+        setPhotos(monthPhotos);
+      }
+    } else {
+      const monthPhotos = await loadPhotosForMonth(newYear, newMonth);
+      setPhotos(monthPhotos);
+    }
 
     // 4. Load or generate target month's days
-    const savedDays = await loadDaysForMonth(newYear, newMonth);
-    if (savedDays && savedDays.length > 0) {
-      setDays(savedDays);
+    let targetDays: WorkingDay[] | null = null;
+    if (userId) {
+      targetDays = await loadCloudSchedule(userId, newYear, newMonth);
+    }
+    if (!targetDays) {
+      targetDays = await loadDaysForMonth(newYear, newMonth, userId);
+    }
+
+    if (targetDays && targetDays.length > 0) {
+      setDays(targetDays);
     } else {
       const freshDays = generateMonthDays(newYear, newMonth);
       const distributed = distributeSamitiesToWorkingDays(freshDays, samities, officerInfo.branchName);
       setDays(distributed);
-      await saveDaysForMonth(newYear, newMonth, distributed);
+      await saveDaysForMonth(newYear, newMonth, distributed, userId);
+      if (userId) {
+        await saveCloudSchedule(userId, newYear, newMonth, distributed);
+      }
     }
   };
 
@@ -215,15 +335,18 @@ export default function App() {
   const handleRedistribute = useCallback(() => {
     const distributed = distributeSamitiesToWorkingDays(days, samities, officerInfo.branchName);
     setDays(distributed);
-    saveDaysForMonth(officerInfo.year, officerInfo.month, distributed);
+    saveDaysForMonth(officerInfo.year, officerInfo.month, distributed, userId);
+    if (userId) {
+      saveCloudSchedule(userId, officerInfo.year, officerInfo.month, distributed);
+    }
     setStatusMessage({
       type: 'success',
       text: 'খোলা দিনগুলোতে সমিতি সফলভাবে বণ্টন করা হয়েছে!',
     });
     setTimeout(() => setStatusMessage(null), 3500);
-  }, [days, samities, officerInfo.branchName, officerInfo.year, officerInfo.month]);
+  }, [days, samities, officerInfo.branchName, officerInfo.year, officerInfo.month, userId]);
 
-  // Save Report Action: saves entire monthly report & photos to archive
+  // Save Report Action: saves entire monthly report & photos to archive and cloud
   const handleSaveReport = async () => {
     try {
       const now = new Date();
@@ -243,12 +366,16 @@ export default function App() {
         totalPhotos: photos.length,
       };
 
-      const updatedArchive = await saveMonthlyReport(report);
+      const updatedArchive = await saveMonthlyReport(report, userId);
       setSavedReports(updatedArchive);
+
+      if (userId) {
+        await saveCloudReport(userId, report);
+      }
 
       setStatusMessage({
         type: 'success',
-        text: `${monthLabel} মাসের ভ্রমণ বিবরণী ও ছবি সফলভাবে সেভ করা হয়েছে!`,
+        text: `${monthLabel} মাসের ভ্রমণ বিবরণী ও ছবি সফলভাবে ক্লাউডে সংরক্ষিত হয়েছে!`,
       });
       setTimeout(() => setStatusMessage(null), 4000);
     } catch (e) {
@@ -263,8 +390,8 @@ export default function App() {
   // Load an archived report
   const handleLoadArchivedReport = async (report: SavedMonthlyReport) => {
     // Save current month before switching
-    await savePhotosForMonth(officerInfo.year, officerInfo.month, photos);
-    await saveDaysForMonth(officerInfo.year, officerInfo.month, days);
+    await savePhotosForMonth(officerInfo.year, officerInfo.month, photos, userId);
+    await saveDaysForMonth(officerInfo.year, officerInfo.month, days, userId);
 
     setOfficerInfo(report.officerInfo);
     setPhotos(report.photos);
@@ -294,15 +421,17 @@ export default function App() {
   // Download PDF from an archived report directly
   const handleDownloadArchivedReport = async (report: SavedMonthlyReport) => {
     await handleLoadArchivedReport(report);
-    // Give DOM a tick to paint the loaded preview
     await new Promise((r) => setTimeout(r, 300));
     await handleDownloadPDF();
   };
 
   // Delete an archived report
   const handleDeleteArchivedReport = async (reportId: string) => {
-    const updated = await deleteSavedReport(reportId);
+    const updated = await deleteSavedReport(reportId, userId);
     setSavedReports(updated);
+    if (userId) {
+      await deleteCloudReport(userId, reportId);
+    }
     setStatusMessage({
       type: 'success',
       text: 'সংরক্ষিত রিপোর্ট মুছে ফেলা হয়েছে।',
@@ -327,7 +456,7 @@ export default function App() {
         setDownloadProgressText(prog);
       });
 
-      // Auto save to archive on download as requested
+      // Auto save to archive and cloud on download
       handleSaveReport();
 
       setStatusMessage({
@@ -372,9 +501,11 @@ export default function App() {
         onDownloadPDF={handleDownloadPDF}
         onPrint={handlePrint}
         onSaveReport={handleSaveReport}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
         isDownloading={isDownloading}
         downloadProgressText={downloadProgressText}
         savedReportsCount={savedReports.length}
+        currentOfficerName={officerInfo.officerName}
       />
 
       {/* Flash Status Message Toast */}
@@ -428,6 +559,16 @@ export default function App() {
 
               {/* Controls: Zoom & Save & Download */}
               <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                {/* Switch Officer / Account button */}
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-100/60 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition active:scale-95"
+                  title="অফিসার পরিবর্তন করুন"
+                >
+                  <Users className="w-3.5 h-3.5 text-amber-700" />
+                  <span>অফিসার অ্যাকাউন্ট</span>
+                </button>
+
                 {/* Save Report */}
                 <button
                   onClick={handleSaveReport}
@@ -467,7 +608,7 @@ export default function App() {
                 <button
                   onClick={handleDownloadPDF}
                   disabled={isDownloading}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-linear-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-bold shadow-xs transition active:scale-95 cursor-pointer border border-amber-500"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-bold shadow-xs transition active:scale-95 cursor-pointer border border-amber-500"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>পিডিএফ ডাউনলোড</span>
@@ -527,7 +668,7 @@ export default function App() {
           <SamityManager
             samities={samities}
             onUpdateSamities={(newSamities) => {
-              setSamities(newSamities);
+              updateSamities(newSamities);
               const distributed = distributeSamitiesToWorkingDays(days, newSamities, officerInfo.branchName);
               handleUpdateDays(distributed);
             }}
@@ -540,7 +681,7 @@ export default function App() {
           <OfficerSettings
             officerInfo={officerInfo}
             onUpdateOfficerInfo={(info) => {
-              setOfficerInfo(info);
+              updateOfficerInfo(info);
               setDays((prev) =>
                 prev.map((d) => ({ ...d, branchName: info.branchName }))
               );
@@ -568,12 +709,26 @@ export default function App() {
         onClose={() => setIsSignatureModalOpen(false)}
         currentSignature={signatureUrl}
         onSave={(newSig) => {
-          setSignatureUrl(newSig);
+          updateSignature(newSig);
           setStatusMessage({
             type: 'success',
             text: 'স্বাক্ষর সফলভাবে সংরক্ষিত হয়েছে!',
           });
           setTimeout(() => setStatusMessage(null), 3000);
+        }}
+      />
+
+      {/* Officer Switcher & Auth Modal */}
+      <OfficerAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSelectOfficerProfile={(name, union, designation) => {
+          const updated = {
+            ...officerInfo,
+            officerName: name,
+            designation: designation || officerInfo.designation,
+          };
+          updateOfficerInfo(updated);
         }}
       />
 
