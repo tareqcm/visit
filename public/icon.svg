@@ -1,61 +1,165 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#059669" />
-      <stop offset="100%" stop-color="#065f46" />
+    <!-- Background Gradient: Deep Royal Emerald & Forest -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#047857" />
+      <stop offset="45%" stop-color="#065f46" />
+      <stop offset="85%" stop-color="#064e3b" />
+      <stop offset="100%" stop-color="#022c22" />
     </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#022c22" flood-opacity="0.25" />
+
+    <!-- Ambient Light Spotlight -->
+    <radialGradient id="topAura" cx="30%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.35" />
+      <stop offset="60%" stop-color="#10b981" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#047857" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Metallic Gold Gradient for Borders & Accents -->
+    <linearGradient id="goldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="35%" stop-color="#f59e0b" />
+      <stop offset="70%" stop-color="#d97706" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+
+    <!-- Rich Gold Fill for Bank Crest -->
+    <linearGradient id="goldFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="40%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+
+    <!-- Card Background Gradient -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="70%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+
+    <!-- Route / Road Gradient -->
+    <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+
+    <!-- Deep Drop Shadows -->
+    <filter id="shadowMain" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#021c15" flood-opacity="0.5" />
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#021c15" flood-opacity="0.3" />
+    </filter>
+
+    <filter id="cardShadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#022c22" flood-opacity="0.35" />
+    </filter>
+
+    <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#022c22" flood-opacity="0.4" />
     </filter>
   </defs>
-  <!-- Background with rounded squircle -->
-  <rect width="512" height="512" rx="112" fill="url(#grad)" />
-  
-  <!-- Subtle inner card -->
-  <rect x="76" y="76" width="360" height="360" rx="36" fill="#ffffff" filter="url(#shadow)" opacity="0.96" />
-  
-  <!-- Top header bar on card -->
-  <path d="M 76 112 C 76 92.1 92.1 76 112 76 L 400 76 C 419.9 76 436 92.1 436 112 L 436 148 L 76 148 Z" fill="#047857" />
-  
-  <!-- Bank Pillar / Monument symbol inside header -->
-  <g fill="#ffffff" transform="translate(196, 88) scale(0.6)">
-    <polygon points="100,10 10,40 190,40" />
-    <rect x="25" y="45" width="18" height="35" rx="3" />
-    <rect x="65" y="45" width="18" height="35" rx="3" />
-    <rect x="117" y="45" width="18" height="35" rx="3" />
-    <rect x="157" y="45" width="18" height="35" rx="3" />
-    <rect x="15" y="82" width="170" height="12" rx="2" />
-  </g>
-  
-  <!-- Document Checklist Lines -->
-  <g transform="translate(116, 180)">
-    <!-- Row 1 -->
-    <rect x="0" y="4" width="28" height="28" rx="6" fill="#10b981" />
-    <path d="M 8 18 L 13 23 L 21 11" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-    <rect x="42" y="10" width="160" height="16" rx="4" fill="#0f172a" opacity="0.85" />
-    <rect x="216" y="10" width="56" height="16" rx="4" fill="#64748b" opacity="0.4" />
 
-    <!-- Row 2 -->
-    <rect x="0" y="52" width="28" height="28" rx="6" fill="#10b981" />
-    <path d="M 8 66 L 13 71 L 21 59" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-    <rect x="42" y="58" width="185" height="16" rx="4" fill="#0f172a" opacity="0.85" />
-    <rect x="240" y="58" width="32" height="16" rx="4" fill="#64748b" opacity="0.4" />
+  <!-- ================= 1. SQUIRCLE BASE ================= -->
+  <rect width="512" height="512" rx="116" fill="url(#bgGrad)" />
+  <!-- Spotlight Overlay -->
+  <rect width="512" height="512" rx="116" fill="url(#topAura)" />
+  <!-- Inner Rim Specular Highlight -->
+  <rect x="5" y="5" width="502" height="502" rx="112" fill="none" stroke="url(#goldBorder)" stroke-width="4.5" opacity="0.85" />
+  <rect x="9" y="9" width="494" height="494" rx="108" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.25" />
 
-    <!-- Row 3 -->
-    <rect x="0" y="100" width="28" height="28" rx="6" fill="#10b981" />
-    <path d="M 8 114 L 13 119 L 21 107" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-    <rect x="42" y="106" width="140" height="16" rx="4" fill="#0f172a" opacity="0.85" />
-    <rect x="195" y="106" width="77" height="16" rx="4" fill="#64748b" opacity="0.4" />
+  <!-- ================= 2. CENTRAL REPORT CARD ================= -->
+  <g filter="url(#cardShadow)">
+    <!-- White Elegant Document Slab -->
+    <rect x="86" y="82" width="340" height="348" rx="34" fill="url(#cardGrad)" stroke="#e2e8f0" stroke-width="2" />
 
-    <!-- Photo badge icon in bottom right of card -->
-    <g transform="translate(180, 150)">
-      <rect x="0" y="0" width="90" height="70" rx="12" fill="#f1f5f9" stroke="#047857" stroke-width="3" />
-      <circle cx="28" cy="24" r="8" fill="#f59e0b" />
-      <polygon points="12,58 36,36 54,50 68,38 82,58" fill="#047857" />
+    <!-- Card Header Banner (Deep Emerald Ribbon) -->
+    <path d="M 86 116 C 86 97.2 101.2 82 120 82 L 392 82 C 410.8 82 426 97.2 426 116 L 426 156 L 86 156 Z" fill="url(#bgGrad)" />
+    <!-- Golden Accent Line below Header -->
+    <line x1="86" y1="156" x2="426" y2="156" stroke="url(#goldBorder)" stroke-width="3" />
+
+    <!-- Bank Crest (Pediment & 4 Pillars) in Gold -->
+    <g transform="translate(198, 92)" filter="url(#badgeShadow)">
+      <!-- Pediment Roof Triangle -->
+      <polygon points="58,6 6,24 110,24" fill="url(#goldFill)" />
+      <polygon points="58,9 14,24 102,24" fill="#fef08a" opacity="0.6" />
+      <rect x="4" y="24" width="108" height="5" rx="2" fill="url(#goldFill)" />
+
+      <!-- 4 Pillars -->
+      <rect x="14" y="32" width="12" height="23" rx="2.5" fill="url(#goldFill)" />
+      <rect x="38" y="32" width="12" height="23" rx="2.5" fill="url(#goldFill)" />
+      <rect x="66" y="32" width="12" height="23" rx="2.5" fill="url(#goldFill)" />
+      <rect x="90" y="32" width="12" height="23" rx="2.5" fill="url(#goldFill)" />
+
+      <!-- Pillar Base Foundation -->
+      <rect x="8" y="56" width="100" height="6" rx="2" fill="url(#goldFill)" />
     </g>
-    
-    <!-- Stamp Seal -->
-    <circle cx="65" cy="180" r="30" fill="none" stroke="#dc2626" stroke-width="3.5" stroke-dasharray="6,4" />
-    <text x="65" y="186" text-anchor="middle" font-size="14" font-weight="bold" fill="#dc2626" font-family="sans-serif">APPROVED</text>
+
+    <!-- Card Body Content: Inspection Tour Schedule Lines -->
+    <g transform="translate(120, 182)">
+      <!-- Line 1: Field Tour Date & Samity -->
+      <circle cx="16" cy="16" r="14" fill="#047857" />
+      <path d="M 10 16 L 14 20 L 22 12" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <rect x="44" y="8" width="155" height="15" rx="4" fill="#0f172a" opacity="0.82" />
+      <rect x="210" y="8" width="55" height="15" rx="4" fill="#f59e0b" opacity="0.9" />
+
+      <!-- Line 2: Inspection Item -->
+      <circle cx="16" cy="56" r="14" fill="#047857" />
+      <path d="M 10 56 L 14 60 L 22 52" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <rect x="44" y="48" width="180" height="15" rx="4" fill="#0f172a" opacity="0.82" />
+      <rect x="234" y="48" width="31" height="15" rx="4" fill="#64748b" opacity="0.35" />
+
+      <!-- Line 3: Member Verification -->
+      <circle cx="16" cy="96" r="14" fill="#047857" />
+      <path d="M 10 96 L 14 100 L 22 92" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <rect x="44" y="88" width="135" height="15" rx="4" fill="#0f172a" opacity="0.82" />
+      <rect x="189" y="88" width="76" height="15" rx="4" fill="#64748b" opacity="0.35" />
+    </g>
+
+    <!-- Tour Navigation S-Curve Route Overlay (Dynamic Field Mobility) -->
+    <path d="M 112 340 C 150 310, 200 365, 255 330" fill="none" stroke="url(#routeGrad)" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 8" />
+    <circle cx="114" cy="340" r="5" fill="#f59e0b" />
+    <circle cx="180" cy="328" r="4" fill="#d97706" />
+  </g>
+
+  <!-- ================= 3. FLOATING INSPECTION PHOTO & LOCATION BADGE ================= -->
+  <!-- Bottom-Right Floating Glass Badge (Camera + Photo Report + Seal) -->
+  <g transform="translate(290, 276)" filter="url(#badgeShadow)">
+    <!-- Golden Shield Badge Background -->
+    <rect x="0" y="0" width="150" height="130" rx="26" fill="url(#bgGrad)" stroke="url(#goldBorder)" stroke-width="3.5" />
+
+    <!-- Camera / Field Photo Lens graphic -->
+    <g transform="translate(22, 18)">
+      <!-- Camera Body -->
+      <rect x="4" y="16" width="98" height="68" rx="14" fill="#ffffff" opacity="0.95" />
+      <!-- Top Flash bump -->
+      <path d="M 38 16 L 46 8 L 60 8 L 68 16 Z" fill="#ffffff" opacity="0.95" />
+      <circle cx="85" cy="26" r="4" fill="#ef4444" />
+
+      <!-- Camera Lens (Dual rings with reflection) -->
+      <circle cx="53" cy="50" r="24" fill="#065f46" />
+      <circle cx="53" cy="50" r="19" fill="#047857" stroke="url(#goldBorder)" stroke-width="2" />
+      <circle cx="53" cy="50" r="10" fill="#022c22" />
+      <circle cx="49" cy="46" r="3.5" fill="#ffffff" opacity="0.8" />
+    </g>
+
+    <!-- Official Seal Ribbon / Tour Checkmark at Bottom of Badge -->
+    <g transform="translate(14, 88)">
+      <rect x="0" y="0" width="122" height="28" rx="14" fill="url(#goldFill)" />
+      <!-- Star / Leaf Left -->
+      <circle cx="16" cy="14" r="3" fill="#ffffff" />
+      <!-- Checkmark -->
+      <path d="M 44 14 L 49 19 L 59 9" stroke="#022c22" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <!-- Bengali Monogram 'পসব' or Approved Indicator -->
+      <text x="78" y="19" font-family="'Noto Sans Bengali', sans-serif" font-weight="900" font-size="14" fill="#022c22" text-anchor="middle">পসব</text>
+      <!-- Star / Leaf Right -->
+      <circle cx="106" cy="14" r="3" fill="#ffffff" />
+    </g>
+  </g>
+
+  <!-- ================= 4. MAP PIN / TOUR LOCATION ACCENT (Top Right of Card) ================= -->
+  <g transform="translate(370, 52)" filter="url(#badgeShadow)">
+    <!-- Location Pin Body in Gold & Red -->
+    <path d="M 28 0 C 12.5 0 0 12.5 0 28 C 0 46 28 72 28 72 C 28 72 56 46 56 28 C 56 12.5 43.5 0 28 0 Z" fill="url(#goldFill)" stroke="#ffffff" stroke-width="2.5" />
+    <circle cx="28" cy="26" r="11" fill="#065f46" />
+    <circle cx="28" cy="26" r="6" fill="#fef08a" />
   </g>
 </svg>

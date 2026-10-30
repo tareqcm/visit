@@ -60,8 +60,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-15 gap-2 sm:gap-3">
           {/* Logo & Officer Switcher button */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-600 text-white flex items-center justify-center shadow-xs shrink-0 border border-amber-300">
-              <span className="font-extrabold text-sm sm:text-base tracking-tight font-serif">পসব</span>
+            <div className="w-9.5 h-9.5 rounded-xl overflow-hidden shadow-xs shrink-0 border border-amber-300/90 bg-emerald-950 transition hover:scale-105">
+              <img
+                src="/icon.svg"
+                alt="পল্লী সঞ্চয় ব্যাংক ভ্রমণ বিবরণী"
+                className="w-full h-full object-cover"
+              />
             </div>
 
             {/* Officer Quick Account Pill Button */}
