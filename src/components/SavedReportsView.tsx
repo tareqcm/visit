@@ -18,6 +18,8 @@ export const SavedReportsView: React.FC<SavedReportsViewProps> = ({
   onDeleteReport,
   currentActiveMonthYear,
 }) => {
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
+
   return (
     <div className="space-y-4">
       {/* Header Banner */}
@@ -86,17 +88,34 @@ export const SavedReportsView: React.FC<SavedReportsViewProps> = ({
                       )}
                     </div>
 
-                    <button
-                      onClick={() => {
-                        if (confirm(`আপনি কি ${report.monthYearLabel} মাসের সংরক্ষিত রিপোর্টটি মুছে ফেলতে চান?`)) {
-                          onDeleteReport(report.id);
-                        }
-                      }}
-                      className="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                      title="মুছুন"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {confirmDeleteId === report.id ? (
+                      <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 px-2 py-1 rounded-lg animate-in fade-in">
+                        <span className="text-[11px] font-bold text-rose-800">মুছবেন?</span>
+                        <button
+                          onClick={() => {
+                            onDeleteReport(report.id);
+                            setConfirmDeleteId(null);
+                          }}
+                          className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-bold transition cursor-pointer"
+                        >
+                          হ্যাঁ
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="px-1.5 py-0.5 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded text-[11px] transition cursor-pointer"
+                        >
+                          না
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(report.id)}
+                        className="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                        title="রিপোর্টটি মুছুন"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Summary Details */}

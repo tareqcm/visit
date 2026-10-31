@@ -2,18 +2,24 @@
 
 @layer base {
   body {
-    font-family: 'SolaimanLipi', 'Kalpurush', 'Nikosh', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'SolaimanLipi', 'Kalpurush', system-ui, -apple-system, sans-serif;
+    letter-spacing: normal;
   }
 }
 
 .a4-page {
   background-color: #ffffff !important;
   color: #000000 !important;
-  font-family: 'SolaimanLipi', 'Kalpurush', 'Nikosh', 'Noto Sans Bengali', serif !important;
+  font-family: 'Noto Serif Bengali', 'Kalpurush', 'SolaimanLipi', 'Hind Siliguri', serif !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased !important;
 }
 
 .a4-page * {
   box-sizing: border-box;
+  letter-spacing: normal !important;
 }
 
 /* Print styling for exact 2-page A4 print */
@@ -48,7 +54,7 @@
     max-height: 297mm !important;
     height: 297mm !important;
     margin: 0 !important;
-    padding: 12mm 15mm !important;
+    padding: 7mm 12mm 6mm 12mm !important;
     box-shadow: none !important;
     border: none !important;
     page-break-after: always !important;

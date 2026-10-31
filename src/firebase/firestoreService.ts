@@ -7,7 +7,7 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { db } from './config';
-import { OfficerInfo, Samity, WorkingDay, FieldPhoto, SavedMonthlyReport } from '../types';
+import { OfficerInfo, Samity, WorkingDay, FieldPhoto, SavedMonthlyReport, OfficerSummary } from '../types';
 
 /**
  * Service to manage all Firestore cloud data strictly partitioned per Officer UID.
@@ -31,6 +31,7 @@ export async function saveCloudOfficerProfile(
       designation: officerInfo.designation,
       bankName: officerInfo.bankName,
       branchName: officerInfo.branchName,
+      districtName: officerInfo.districtName || '',
       smarokNo: officerInfo.smarokNo,
       smarokDate: officerInfo.smarokDate,
       year: officerInfo.year,
@@ -59,6 +60,7 @@ export async function loadCloudOfficerProfile(
           designation: data.designation,
           bankName: data.bankName,
           branchName: data.branchName,
+          districtName: data.districtName || '',
           smarokNo: data.smarokNo,
           smarokDate: data.smarokDate,
           year: data.year,
@@ -69,7 +71,7 @@ export async function loadCloudOfficerProfile(
       };
     }
   } catch (error) {
-    console.error('Error loading officer profile from Firestore:', error);
+    console.warn('Error loading officer profile from Firestore:', error);
   }
   return null;
 }
@@ -86,7 +88,7 @@ export async function saveCloudSamities(userId: string, samities: Samity[]): Pro
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error saving samities to Firestore:', error);
+    console.warn('Error saving samities to Firestore:', error);
   }
 }
 
@@ -100,7 +102,7 @@ export async function loadCloudSamities(userId: string): Promise<Samity[] | null
       return snap.data().samities as Samity[];
     }
   } catch (error) {
-    console.error('Error loading samities from Firestore:', error);
+    console.warn('Error loading samities from Firestore:', error);
   }
   return null;
 }
@@ -125,7 +127,7 @@ export async function saveCloudSchedule(
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error saving month schedule to Firestore:', error);
+    console.warn('Error saving month schedule to Firestore:', error);
   }
 }
 
@@ -144,7 +146,7 @@ export async function loadCloudSchedule(
       return JSON.parse(snap.data().days) as WorkingDay[];
     }
   } catch (error) {
-    console.error('Error loading month schedule from Firestore:', error);
+    console.warn('Error loading month schedule from Firestore:', error);
   }
   return null;
 }
@@ -168,7 +170,7 @@ export async function saveCloudPhotos(
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error saving photos to Firestore:', error);
+    console.warn('Error saving photos to Firestore:', error);
   }
 }
 
@@ -187,7 +189,7 @@ export async function loadCloudPhotos(
       return JSON.parse(snap.data().photosJson) as FieldPhoto[];
     }
   } catch (error) {
-    console.error('Error loading photos from Firestore:', error);
+    console.warn('Error loading photos from Firestore:', error);
   }
   return null;
 }
@@ -210,7 +212,7 @@ export async function saveCloudReport(userId: string, report: SavedMonthlyReport
       userId,
     });
   } catch (error) {
-    console.error('Error saving report to Firestore:', error);
+    console.warn('Error saving report to Firestore:', error);
   }
 }
 
@@ -235,7 +237,7 @@ export async function loadCloudReports(userId: string): Promise<SavedMonthlyRepo
     reports.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
     return reports;
   } catch (error) {
-    console.error('Error loading reports from Firestore:', error);
+    console.warn('Error loading reports from Firestore:', error);
     return [];
   }
 }
@@ -247,6 +249,75 @@ export async function deleteCloudReport(userId: string, reportId: string): Promi
     const docRef = doc(db, 'users', userId, 'reports', reportId);
     await deleteDoc(docRef);
   } catch (error) {
-    console.error('Error deleting report from Firestore:', error);
+    console.warn('Error deleting report from Firestore:', error);
   }
 }
+
+// Sync officer summary to officers_registry (for Admin oversight)
+export async function syncOfficerToRegistry(summary: OfficerSummary): Promise<void> {
+  if (!summary.officerId) return;
+  try {
+    const docRef = doc(db, 'officers_registry', summary.officerId);
+    await setDoc(
+      docRef,
+      {
+        ...summary,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    console.warn('Could not sync to officers_registry:', error);
+  }
+}
+
+// Fetch all officers from Firestore for Admin Panel
+export async function fetchAllOfficersForAdmin(): Promise<OfficerSummary[]> {
+  try {
+    const colRef = collection(db, 'officers_registry');
+    const snap = await getDocs(colRef);
+    const registry: OfficerSummary[] = [];
+    snap.forEach((docSnap) => {
+      registry.push(docSnap.data() as OfficerSummary);
+    });
+    return registry;
+  } catch (error) {
+    console.warn('Error fetching all officers for admin:', error);
+    return [];
+  }
+}
+
+// Delete an officer and their records from Firestore (Admin only)
+export async function deleteOfficerFromFirestore(officerId: string): Promise<boolean> {
+  if (!officerId) return false;
+  try {
+    // 1. Delete from officers_registry
+    const regRef = doc(db, 'officers_registry', officerId);
+    await deleteDoc(regRef);
+
+    // 2. Delete user's profile documents
+    try {
+      await deleteDoc(doc(db, 'users', officerId, 'profile', 'info'));
+      await deleteDoc(doc(db, 'users', officerId, 'profile', 'samities'));
+    } catch (err) {
+      console.warn('Error deleting user profile docs:', err);
+    }
+
+    // 3. Delete user's reports
+    try {
+      const reportsCol = collection(db, 'users', officerId, 'reports');
+      const repSnap = await getDocs(reportsCol);
+      for (const d of repSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+    } catch (err) {
+      console.warn('Error deleting user reports:', err);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting officer from Firestore:', error);
+    return false;
+  }
+}
+

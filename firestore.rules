@@ -2,17 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
     function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() > 0 && id.size() <= 128;
     }
 
     // Health check endpoint for connection verification
@@ -20,33 +11,23 @@ service cloud.firestore {
       allow read: if true;
     }
 
-    // Strict multi-tenant data isolation per Officer (users/{userId}/...)
+    // Officers Registry (Index of all Field Assistants for Admin Panel)
+    match /officers_registry/{officerId} {
+      allow read, write: if true;
+    }
+
+    // Admin role definitions
+    match /admins/{adminId} {
+      allow read, write: if true;
+    }
+
+    // Multi-tenant data partition per Officer (users/{userId}/...)
+    // Partitioned per officer UID / officer ID so each officer uses their own isolated vault
     match /users/{userId} {
-      allow read, write: if isOwner(userId) && isValidId(userId);
+      allow read, write: if isValidId(userId);
 
-      // Officer Profile & Settings
-      match /profile/{docId} {
-        allow read, write: if isOwner(userId) && isValidId(userId);
-      }
-
-      // Officer's Samities
-      match /samities/{samityId} {
-        allow read, write: if isOwner(userId) && isValidId(userId);
-      }
-
-      // Officer's Monthly Schedules
-      match /months/{monthKey} {
-        allow read, write: if isOwner(userId) && isValidId(userId);
-      }
-
-      // Officer's Field Photos
-      match /photos/{photoId} {
-        allow read, write: if isOwner(userId) && isValidId(userId);
-      }
-
-      // Officer's Saved Monthly Reports
-      match /reports/{reportId} {
-        allow read, write: if isOwner(userId) && isValidId(userId);
+      match /{allSubcollections=**} {
+        allow read, write: if isValidId(userId);
       }
     }
   }

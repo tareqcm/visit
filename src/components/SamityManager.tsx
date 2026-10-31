@@ -8,14 +8,33 @@ interface SamityManagerProps {
   samities: Samity[];
   onUpdateSamities: (samities: Samity[]) => void;
   onRedistribute: () => void;
+  onOpenSetupWizard?: () => void;
 }
 
 const STORAGE_DEFAULT_UNION = 'vromon_selected_default_union';
+
+/**
+ * Automatically appends "গ্রাম উন্নয়ন সমিতি" if not already present,
+ * preventing any duplication.
+ */
+export const formatSamityNameWithSuffix = (name: string): string => {
+  let cleaned = name.trim();
+  if (!cleaned) return '';
+  cleaned = cleaned
+    .replace(/\s*গ্রাম\s*উন্নয়ন\s*সমিতি$/g, '')
+    .replace(/\s*গ্রাম\s*উন্নয়ন\s*সমিতি$/g, '')
+    .replace(/\s*গ্রাম\s*উন্নয়ন$/g, '')
+    .replace(/\s*গ্রাম\s*উন্নয়ন$/g, '')
+    .replace(/\s*সমিতি$/g, '')
+    .trim();
+  return `${cleaned} গ্রাম উন্নয়ন সমিতি`;
+};
 
 export const SamityManager: React.FC<SamityManagerProps> = ({
   samities,
   onUpdateSamities,
   onRedistribute,
+  onOpenSetupWizard,
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newSamityName, setNewSamityName] = useState('');
@@ -69,17 +88,19 @@ export const SamityManager: React.FC<SamityManagerProps> = ({
     e.preventDefault();
     if (!newSamityName.trim()) return;
 
+    // Automatically append "গ্রাম উন্নয়ন সমিতি"
+    const finalFormattedName = formatSamityNameWithSuffix(newSamityName);
     const finalUnion = isCustomUnion ? customUnionText.trim() || newUnionName : newUnionName;
 
     const newSamity: Samity = {
       id: Date.now().toString(),
-      name: newSamityName.trim(),
+      name: finalFormattedName,
       unionName: finalUnion.trim() || '১৩নং ইসলামপুর',
       active: true,
     };
 
     onUpdateSamities([...samities, newSamity]);
-    // Only clear samity name so the union remains persistently selected!
+    // Reset only samity name; newUnionName REMAINS unchanged as default!
     setNewSamityName('');
   };
 
@@ -92,9 +113,10 @@ export const SamityManager: React.FC<SamityManagerProps> = ({
 
   const handleSaveEdit = (id: string) => {
     if (!editName.trim()) return;
+    const finalEditName = formatSamityNameWithSuffix(editName);
     onUpdateSamities(
       samities.map((s) =>
-        s.id === id ? { ...s, name: editName.trim(), unionName: editUnion.trim() } : s
+        s.id === id ? { ...s, name: finalEditName, unionName: editUnion.trim() } : s
       )
     );
     setEditingId(null);
@@ -134,6 +156,17 @@ export const SamityManager: React.FC<SamityManagerProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {onOpenSetupWizard && (
+              <button
+                type="button"
+                onClick={onOpenSetupWizard}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold transition shadow-2xs"
+                title="একে একে সকল সমিতি ও ইউনিয়ন এন্ট্রি করুন"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>সমিতি দ্রুত এন্ট্রি</span>
+              </button>
+            )}
             <button
               onClick={onRedistribute}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition border border-amber-300"
@@ -175,28 +208,40 @@ export const SamityManager: React.FC<SamityManagerProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Samity Name */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">সমিতির নাম *</label>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  সমিতির নাম * <span className="text-[11px] font-normal text-amber-800">("গ্রাম উন্নয়ন সমিতি" অটো সেভ হবে)</span>
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="যেমন: রৈস্যাবিলি গ্রাম উন্নয়ন সমিতি"
+                  placeholder="যেমন: রৈস্যাবিলি বা গুল মোহাম্মদপাড়া"
                   value={newSamityName}
                   onChange={(e) => setNewSamityName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-amber-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+                  className="w-full px-3 py-2 rounded-lg border border-amber-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-500 bg-white text-stone-900"
                 />
+                {newSamityName.trim() ? (
+                  <div className="text-[11px] text-emerald-800 font-bold mt-1.5 flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                    <Check className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span>অটো-সেভ নাম: <strong className="underline decoration-emerald-500">{formatSamityNameWithSuffix(newSamityName)}</strong></span>
+                  </div>
+                ) : (
+                  <span className="text-[10.5px] text-stone-500 mt-1 block">
+                    💡 শুধু মূল নাম লিখুন, "গ্রাম উন্নয়ন সমিতি" স্বয়ংক্রিয়ভাবে যুক্ত হয়ে সংরক্ষিত হবে।
+                  </span>
+                )}
               </div>
 
               {/* Union Dropdown with all 15 unions & 1 municipality of Rangunia */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  ইউনিয়নের নাম (রাঙ্গুনিয়া উপজেলার ১৫টি ইউনিয়ন ও ১টি পৌরসভা) *
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  ইউনিয়ন * <span className="text-[11px] font-normal text-amber-800">(পরিবর্তন না করা পর্যন্ত ডিফল্ট থাকবে)</span>
                 </label>
                 
                 {!isCustomUnion ? (
                   <select
                     value={newUnionName}
                     onChange={(e) => handleUnionChange(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-amber-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-medium text-stone-800"
+                    className="w-full px-3 py-2 rounded-lg border border-amber-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-500 bg-white font-bold text-stone-800 cursor-pointer"
                   >
                     {RANGUNIA_UNIONS.map((union) => (
                       <option key={union} value={union}>
@@ -213,7 +258,7 @@ export const SamityManager: React.FC<SamityManagerProps> = ({
                       value={customUnionText}
                       onChange={(e) => setCustomUnionText(e.target.value)}
                       onBlur={handleCustomUnionBlur}
-                      className="w-full px-3 py-2 rounded-lg border border-amber-500 text-sm focus:outline-none bg-white"
+                      className="w-full px-3 py-2 rounded-lg border border-amber-500 text-sm focus:outline-hidden bg-white"
                     />
                     <button
                       type="button"
@@ -224,8 +269,8 @@ export const SamityManager: React.FC<SamityManagerProps> = ({
                     </button>
                   </div>
                 )}
-                <p className="text-[11px] text-stone-500 mt-1">
-                  বর্তমান নির্ধারিত ইউনিয়ন: <strong className="text-amber-800">{isCustomUnion ? (customUnionText || 'নতুন নাম') : newUnionName}</strong> (পরবর্তী সমিতির জন্যও এটি থাকবে)
+                <p className="text-[11px] text-stone-600 mt-1 font-medium">
+                  ✓ বর্তমান ডিফল্ট ইউনিয়ন: <strong className="text-amber-900">{isCustomUnion ? (customUnionText || 'নতুন নাম') : newUnionName}</strong> (পরবর্তী প্রতিটি সমিতির জন্য এটিই থাকবে)
                 </p>
               </div>
             </div>

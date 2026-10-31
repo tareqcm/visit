@@ -78,9 +78,35 @@
         "userId": { "type": "string", "description": "Owner officer UID" }
       },
       "required": ["id", "year", "month", "monthYearLabel", "savedAt", "reportData", "userId"]
+    },
+    "OfficerRegistry": {
+      "title": "Officer Registry",
+      "description": "Directory index of field assistants visible to branch admin",
+      "type": "object",
+      "properties": {
+        "officerId": { "type": "string", "description": "Officer UID or identifier" },
+        "officerName": { "type": "string", "description": "Officer full name" },
+        "designation": { "type": "string", "description": "Designation" },
+        "email": { "type": "string", "description": "Officer email address" },
+        "unionName": { "type": "string", "description": "Assigned Union in Rangunia" },
+        "branchName": { "type": "string", "description": "Branch name" },
+        "samitiesCount": { "type": "number", "description": "Number of assigned samities" },
+        "reportsCount": { "type": "number", "description": "Total archived reports count" },
+        "lastActive": { "type": "string", "description": "ISO timestamp of last activity" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["officerId", "officerName", "designation", "email", "unionName"]
     }
   },
   "firestore": {
+    "/officers_registry/{officerId}": {
+      "schema": "OfficerRegistry",
+      "description": "Summary registry of all field assistants for the Admin Panel"
+    },
+    "/admins/{adminId}": {
+      "schema": "OfficerProfile",
+      "description": "Administrator roles collection"
+    },
     "/users/{userId}/profile/info": {
       "schema": "OfficerProfile",
       "description": "Individual officer settings and profile isolated to their UID"

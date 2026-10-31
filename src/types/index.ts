@@ -23,6 +23,7 @@ export interface WorkingDay {
 export interface OfficerInfo {
   bankName: string;
   branchName: string;
+  districtName?: string;
   officerName: string;
   designation: string;
   smarokNo: string;
@@ -54,4 +55,21 @@ export interface SavedMonthlyReport {
   totalPhotos: number;
 }
 
-export type ActiveTab = 'preview' | 'calendar' | 'photos' | 'samities' | 'settings' | 'archive';
+export interface OfficerSummary {
+  officerId: string;
+  officerName: string;
+  designation: string;
+  email: string;
+  unionName: string;
+  branchName?: string;
+  districtName?: string;
+  samitiesCount: number;
+  reportsCount: number;
+  hasScheduleCurrentMonth?: boolean;
+  photosCount?: number;
+  lastActive: string;
+  updatedAt: string;
+  index?: number;
+}
+
+export type ActiveTab = 'dashboard' | 'preview' | 'calendar' | 'photos' | 'samities' | 'settings' | 'archive' | 'admin';

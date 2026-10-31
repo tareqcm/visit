@@ -2,9 +2,10 @@ import { OfficerInfo, Samity, FieldPhoto } from '../types';
 
 export const DEFAULT_OFFICER_INFO: OfficerInfo = {
   bankName: 'পল্লী সঞ্চয় ব্যাংক',
-  branchName: 'রাঙ্গুনিয়া শাখা, চট্টগ্রাম।',
+  branchName: 'রাঙ্গুনিয়া শাখা',
+  districtName: 'চট্টগ্রাম',
   officerName: 'মো: তারেকুল ইসলাম',
-  designation: 'ফিল্ড অ্যাসিস্ট্যান্ট অফিসার',
+  designation: 'মাঠ সহকারী',
   smarokNo: 'পসব/প্রকা/প্রশা-১৩৮/২০২৪-২৫/২৯৫১',
   smarokDate: '১৫/০৫/২০২৫',
   year: 2026,
