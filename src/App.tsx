@@ -1024,6 +1024,7 @@ export default function App() {
               </div>
             </div>
           </div>
+          )
         )}
 
         {/* TAB 2: CALENDAR & HOLIDAYS */}

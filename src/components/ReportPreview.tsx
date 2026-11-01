@@ -367,7 +367,8 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
                       {day.remarks || ''}
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
